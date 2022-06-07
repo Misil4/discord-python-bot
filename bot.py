@@ -1,10 +1,3 @@
-
-from email import message
-from email.mime import image
-from pydoc import describe
-from sqlite3 import Timestamp
-from turtle import title
-from unicodedata import name
 import discord
 import os
 from dotenv import load_dotenv
@@ -17,7 +10,7 @@ load_dotenv()
 intents = discord.Intents.default()
 bot = commands.Bot(command_prefix=os.getenv('PREFIX'),intents=intents,description="A testing bot")
 bot.remove_command('help')
-client = MongoClient('mongodb+srv://Misil470:mikelsilva0@cluster0.pgzic.gcp.mongodb.net/?retryWrites=true&w=majority')
+client = MongoClient(os.getenv('MONGO_URI'))
 db = client.Primera
 users = db.usuarios
 
