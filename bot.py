@@ -40,7 +40,7 @@ async def buy(ctx,arg : str=None):
         elif arg =="steal" & user['money'] >=35000:
            users.update_one({"name" : ctx.author.name},{"$inc" : {"money" : -35000}})
            await ctx.send(f'{role.mention} ,{ctx.author.mention} ha comprado la custom {arg}')
-        else: ctx.send("ese elemento no existe o no tienes el dinero suficiente")
+        else: await ctx.send("ese elemento no existe o no tienes el dinero suficiente")
         
     else: await ctx.send(f"{ctx.author.mention}, tienes que especificar la custom que quieres comprar")
 
@@ -53,14 +53,14 @@ async def money(ctx,arg:discord.Member=None):
             embed = discord.Embed(description='money : '+str(user['money']),timestamp=datetime.datetime.utcnow())
             embed.set_author(name=ctx.author.name,icon_url=ctx.author.avatar_url)
             await ctx.send(embed=embed)
-        else: ctx.send(f"{ctx.author.mention}, debes registrarte en la base de datos usando kstart")
+        else: await ctx.send(f"{ctx.author.mention}, debes registrarte en la base de datos usando kstart")
     else:
         user = users.find_one({ "name": arg.name })
         if len(user) >0: 
             embed = discord.Embed(description='money : '+str(user['money']),timestamp=datetime.datetime.utcnow())
             embed.set_author(name=arg.name,icon_url=arg.avatar_url)
             await ctx.send(embed=embed)
-        else: ctx.send(f"{ctx.author.mention}, debes registrarte en la base de datos usando kstart")
+        else: await ctx.send(f"{ctx.author.mention}, debes registrarte en la base de datos usando kstart")
     
 
 @bot.command()
@@ -78,18 +78,33 @@ async def start(ctx):
         users.insert_one({"id" : ctx.author.id, "name" : ctx.author.name,"money" : 0,"daily" : 0,"weekly" : 0,"work" : 0,"tickets" : 0})
         await ctx.send("Usuario agregado a la base de datos correctamente")
 
+@bot.command()
+async def give(ctx,arg : discord.Member=None,arg1:int =None):
+    if arg:
+        if arg1:
+            user = users.find_one({ "name": ctx.author.name })
+            if len(user) >0: 
+                if user['money'] > 0:
+                    users.update_one({"name" : arg.name},{"$inc" : {"money" : +arg1}})
+                    users.update_one({"name" : ctx.author.name},{"$inc" : {"money" : -arg1}})
+                    await ctx.send("dinero enviado")
+                else:await ctx.send(f"{ctx.author.mention}, no tienes dinero suficiente para enviar")
+            else: await ctx.send(f"{ctx.author.mention}, debes registrarte en la base de datos usando kstart")
+        else: await ctx.send(f"{ctx.author.mention}, no has definido la cantidad que quieres dar")
+    else: await ctx.send(f"{ctx.author.mention}, debes definir el usuario al que quieres dar el dinero")
+
 
 
     # info commands
 
 @bot.command()
-async def khelp(ctx):
-    embed = discord.Embed(title=f'Bienvenido a OTAKULIFE, {ctx.author.mention}',description="comandos en el servidor",timestamp=datetime.datetime.utcnow())
+async def help(ctx):
+    embed = discord.Embed(title=f'Bienvenido a OTAKULIFE, {ctx.author.name}',description="comandos en el servidor",timestamp=datetime.datetime.utcnow())
     embed.add_field(name="ver todos los comandos de el servidor",value="khelp")
     embed.add_field(name="visualiza tu dinero",value="kmoney")
     embed.add_field(name="menu de la tienda",value="kshop")
     embed.add_field(name="da dinero a otro usuario",value="kgive @usuario")
-    embed.add_field(name="visualizar tu avatar",value="!avatar")
+    embed.add_field(name="visualizar tu avatar",value="kavatar")
     await ctx.send(embed=embed)
 
 @bot.command()
