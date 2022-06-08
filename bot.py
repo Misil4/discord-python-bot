@@ -6,8 +6,10 @@ from discord.ext import commands
 from numpy import number
 from pymongo import MongoClient
 import datetime
+import random
 
 load_dotenv()
+
 
 intents = discord.Intents.default()
 bot = commands.Bot(command_prefix=os.getenv('PREFIX'),intents=intents,description="A testing bot")
@@ -23,6 +25,17 @@ async def on_ready():
     print(bot.user.name)
     print('------')
 
+
+@bot.command()
+@commands.cooldown(1, 86400, commands.BucketType.user)
+async def daily(ctx):
+    user = users.find_one({"name" : ctx.author.name})
+    if len(user) > 0:
+        randomN = random.randrange(100,200)
+        users.update_one({"name" : ctx.author.name}, {"$inc" : {"money" : +randomN}})
+        await ctx.send(f"Has ganado {randomN}")
+    else: await ctx.send(f"{ctx.author.mention}, debes registrarte en la base de datos usando kstart")
+      
 @bot.command()
 async def buy(ctx,arg : str=None):
     role = discord.utils.get(ctx.guild.roles, name = "『🔥』┋MODERADORES")
@@ -104,6 +117,7 @@ async def help(ctx):
     embed.add_field(name="visualiza tu dinero",value="kmoney")
     embed.add_field(name="menu de la tienda",value="kshop")
     embed.add_field(name="da dinero a otro usuario",value="kgive @usuario")
+    embed.add_field(name="gana dinero cada 24 horas",value="kdaily")
     embed.add_field(name="visualizar tu avatar",value="kavatar")
     await ctx.send(embed=embed)
 
@@ -142,6 +156,14 @@ async def remove(ctx,arg:discord.Member=None,arg1: int=None):
             await ctx.send(embed=embed)
         else : await ctx.send(f"{ctx.author.mention}, no has definido la cantidad que quieres restar")
     else : await ctx.send(f"{ctx.author.mention}, tienes que tagear a un usuario para restar dinero")
+@bot.event
+async def on_command_error(ctx, error):
+    if isinstance(error, commands.CommandOnCooldown):
+        await ctx.send("Ya has usado el comando.")
+        return
+    else:
+        raise error
+
 
 bot.run(os.getenv("TOKEN"))
     
