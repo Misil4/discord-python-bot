@@ -7,24 +7,11 @@ from pymongo import MongoClient
 import datetime
 import combat
 import random
-from PIL import Image, ImageFont, ImageDraw, ImageEnhance
+from PIL import Image, ImageDraw
+import progressbar
 
 load_dotenv()
 
-
-def drawProgressBar(d, x, y, w, h, progress, bg="white", fg="green"):
-    # draw background
-    d.ellipse((x+w, y, x+h+w, y+h), fill=bg)
-    d.ellipse((x, y, x+h, y+h), fill=bg)
-    d.rectangle((x+(h/2), y, x+w+(h/2), y+h), fill=bg)
-
-    # draw progress bar
-    w *= progress
-    d.ellipse((x+w, y, x+h+w, y+h), fill=fg)
-    d.ellipse((x, y, x+h, y+h), fill=fg)
-    d.rectangle((x+(h/2), y, x+w+(h/2), y+h), fill=fg)
-    
-    return d
 intents = discord.Intents.default()
 bot = commands.Bot(command_prefix=os.getenv('PREFIX'),
                    intents=intents, description="A testing bot")
@@ -55,7 +42,7 @@ async def findChara(ctx, *, name):
         d = ImageDraw.Draw(out)
 
         # draw the progress bar to given location, width, progress and color
-        d = drawProgressBar(d, 10, 10, 100, 25, 1.0)
+        d = progressbar.drawProgressBar(d, 10, 10, 100, 25, 1.0)
         out.save("output.jpg")
         file = discord.File("output.jpg", filename="output.jpg")
         embed = discord.Embed(
@@ -76,17 +63,18 @@ async def findChara(ctx, *, name):
         os.remove("./output.jpg")
 
 @bot.command()
-async def combat(ctx,arg : str=None):
+async def kombat(ctx,arg : str=None):
     if arg:
-        chara = character.find({'nombre':arg})
-        if chara.count() == 0:
+        chara = character.find_one({'name':arg})
+        if chara is None:
             await ctx.send("No existe un personaje con ese nombre")
         else:
-            chara1 = character.aggregate([{ '$sample' : {'size' : 1}}])
-            kombat = combat.Combat(chara['atributtes']['attack'],chara['atributtes']['defense'],chara['atributtes']['speed'],chara1['atributtes']['attack'],chara1['atributtes']['defense'],chara1['atributtes']['speed'])
+            query = character.aggregate([{ '$sample' : {'size' : 1}}])
+            chara1 = list(query)
+            var = combat.Combat(chara['name'],chara['atributtes']['attack'],chara['atributtes']['defense'],chara['atributtes']['speed'],chara['picture'],chara1[0]['name'],chara1[0]['atributtes']['attack'],chara1[0]['atributtes']['defense'],chara1[0]['atributtes']['speed'],chara1[0]['picture'])
             await ctx.send("EMPEZANDO COMBATE")
-            await ctx.send(f"SE ENFRENTAN {chara['name']} {chara['surname']} VS {chara1['name']} {chara1['surname']}")
-            kombat.start_combat(ctx)
+            await ctx.send(f"SE ENFRENTAN {chara['name']} {chara['surname']} VS {chara1[0]['name']} {chara1[0]['surname']}")
+            await var.start_combat(ctx)
 @bot.command()
 @commands.cooldown(1, 604800, commands.BucketType.user)
 async def weekly(ctx):
