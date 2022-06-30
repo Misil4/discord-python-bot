@@ -1,5 +1,4 @@
 import random
-from turtle import title
 import discord
 import progressbar
 from PIL import Image, ImageDraw
@@ -59,7 +58,7 @@ class Combat:
         update = await ctx.send(embed=playerEmbed(name=self.turn[0].name, player=self.turn[0]))
         battle = await ctx.send("Esperando turno")
         update1 = await ctx.send(embed=playerEmbed(name=self.turn[1].name, player=self.turn[1]))
-        while self.turn[0].stamina >= 0 or self.turn[1].stamina >= 0:
+        while self.turn[0].stamina > 0 or self.turn[1].stamina > 0:
             if (count == 0):
                 damage = self.turn[0].attacking(self.turn[1])
                 self.turn[1].stamina -= damage
@@ -72,6 +71,16 @@ class Combat:
                 count = 1
                 turns += 1
                 await turn.edit(content=f"Turno actual :  {turns}")
+                if self.turn[0].stamina > 0 and self.turn[1].stamina <= 0:
+                    embed = discord.Embed(title=f"Ganador {self.turn[0].name}",description=f"STA restante {self.turn[0].stamina}")
+                    embed.set_image(url=self.turn[0].photo)
+                    return await ctx.send(embed=embed)
+                if self.turn[1].stamina > 0 and self.turn[0].stamina <= 0:
+                   embed = discord.Embed(title=f"Ganador {self.turn[1].name}",description=f"STA restante {self.turn[1].stamina}")
+                   embed.set_image(url=self.turn[1].photo)
+                   return await ctx.send(embed=embed)
+                else:
+                    continue
             elif (count == 1):
                 damage = self.turn[1].attacking(self.turn[0])
                 await battle.edit(content=f"{self.turn[1].name} ha inflingido {damage/10}% de daño a {self.turn[0].name}")
@@ -84,10 +93,16 @@ class Combat:
                 count = 0
                 turns += 1
                 await turn.edit(content=f"Turno actual :  {turns}")
-        if (self.turn[0].stamina < self.turn[1].stamina):
-            await ctx.send(f"player 1 winner {self.turn[0].stamina} {self.turn[1].stamina}")
-        elif(self.turn[1].stamina < self.turn[0].stamina):
-            await ctx.send(f"player winner {self.turn[1].stamina} {self.turn[0].stamina}")
+                if self.turn[0].stamina > 0 and self.turn[1].stamina <= 0:
+                   embed = discord.Embed(title=f"Ganador {self.turn[0].name}",description=f"STA restante {self.turn[0].stamina}")
+                   embed.set_image(url=self.turn[0].photo)
+                   return await ctx.send(embed=embed)
+                if self.turn[1].stamina > 0 and self.turn[0].stamina <= 0:
+                    embed = discord.Embed(title=f"Ganador {self.turn[1].name}",description=f"STA restante {self.turn[1].stamina}")
+                    embed.set_image(url=self.turn[1].photo)
+                    return await ctx.send(embed=embed)
+                else:
+                    continue
 
 # Init Combat
 # combat = Combat()
