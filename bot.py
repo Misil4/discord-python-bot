@@ -38,15 +38,8 @@ async def findChara(ctx, *, name):
     else:
         name = user['name']
         surname = user['surname']
-        out = Image.new("RGB", (150, 100), (255, 255, 255))
-        d = ImageDraw.Draw(out)
-
-        # draw the progress bar to given location, width, progress and color
-        d = progressbar.drawProgressBar(d, 10, 10, 100, 25, 1.0)
-        out.save("output.jpg")
-        file = discord.File("output.jpg", filename="output.jpg")
         embed = discord.Embed(
-            title=f'{name} {surname}', description=user['description'], color=0x00ff00)
+            title=f'{name} {surname}',description=user['description'], color=0x00ff00,timestamp=datetime.datetime.utcnow())
         embed.add_field(name="Genero", value=user['genre'])
         embed.add_field(name="Edad", value=user['age'])
         embed.add_field(name="Series", value=user['series'])
@@ -57,10 +50,13 @@ async def findChara(ctx, *, name):
         embed.add_field(name="<:acc:987788951202955264>ACC",
                         value=user['atributtes']['speed'], inline=True)
         embed.add_field(name="STA", value="100%", inline=True)
-        embed.set_thumbnail(url=user['picture'])
-        embed.set_image(url="attachment://output.jpg")
-        await ctx.send(file=file, embed=embed)
-        os.remove("./output.jpg")
+        embed.set_image(url=user['picture'])
+        if user['owner'] == '0':
+            embed.set_footer(text="Sin dueño")
+        else:
+            User = await bot.fetch_user(user['owner'])
+            embed.set_footer(text=f"pertenece a {User.name}",icon_url=User.avatar_url)
+        await ctx.send(embed=embed)
 
 @bot.command()
 async def kombat(ctx,arg : str=None):
@@ -69,12 +65,15 @@ async def kombat(ctx,arg : str=None):
         if chara is None:
             await ctx.send("No existe un personaje con ese nombre")
         else:
-            query = character.aggregate([{ '$sample' : {'size' : 1}}])
-            chara1 = list(query)
-            var = combat.Combat(chara['name'],chara['atributtes']['attack'],chara['atributtes']['defense'],chara['atributtes']['speed'],chara['picture'],chara1[0]['name'],chara1[0]['atributtes']['attack'],chara1[0]['atributtes']['defense'],chara1[0]['atributtes']['speed'],chara1[0]['picture'])
-            await ctx.send("EMPEZANDO COMBATE")
-            await ctx.send(f"SE ENFRENTAN {chara['name']} {chara['surname']} VS {chara1[0]['name']} {chara1[0]['surname']}")
-            await var.start_combat(ctx)
+            if chara['owner'] == ctx.author.id:
+                query = character.aggregate([{ '$sample' : {'size' : 1}}])
+                chara1 = list(query)
+                var = combat.Combat(chara['name'],chara['atributtes']['attack'],chara['atributtes']['defense'],chara['atributtes']['speed'],chara['picture'],chara1[0]['name'],chara1[0]['atributtes']['attack'],chara1[0]['atributtes']['defense'],chara1[0]['atributtes']['speed'],chara1[0]['picture'])
+                await ctx.send("EMPEZANDO COMBATE")
+                await ctx.send(f"SE ENFRENTAN {chara['name']} {chara['surname']} VS {chara1[0]['name']} {chara1[0]['surname']}")
+                await var.start_combat(ctx)
+            else : await ctx.send("Ese personaje no te pertenece")
+    else : await ctx.send("No has seleccionado ningun personaje")
 @bot.command()
 @commands.cooldown(1, 604800, commands.BucketType.user)
 async def weekly(ctx):
