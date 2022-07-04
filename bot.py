@@ -66,17 +66,15 @@ async def kombat(ctx,arg : str=None):
         chara = character.find_one({'name':arg})
         if chara is None:
             await ctx.send("No existe un personaje con ese nombre")
-        elif chara['owner'] != ctx.author.id:
-            await ctx.send("Ese personaje no te pertenece")
+        elif chara['owner'] != str(ctx.author.id):
+           await ctx.send("Ese personaje no te pertenece")
         else:
-            if chara['owner'] == ctx.author.id:
                 query = character.aggregate([{ '$sample' : {'size' : 1}}])
                 chara1 = list(query)
                 var = combat.Combat(chara['name'],chara['atributtes']['attack'],chara['atributtes']['defense'],chara['atributtes']['speed'],chara['picture'],chara1[0]['name'],chara1[0]['atributtes']['attack'],chara1[0]['atributtes']['defense'],chara1[0]['atributtes']['speed'],chara1[0]['picture'])
                 await ctx.send("EMPEZANDO COMBATE")
                 await ctx.send(f"SE ENFRENTAN {chara['name']} {chara['surname']} VS {chara1[0]['name']} {chara1[0]['surname']}")
                 await var.start_combat(ctx)
-            else : await ctx.send("Ese personaje no te pertenece")
     else : await ctx.send("No has seleccionado ningun personaje")
 @bot.command()
 @commands.cooldown(1, 604800, commands.BucketType.user)
@@ -220,16 +218,37 @@ async def give(ctx, arg: discord.Member = None, arg1: int = None):
 
     # info commands
 @bot.command()
-async def inventory(ctx):
+async def chara(ctx):
     user = users.find_one({"name": ctx.author.name})
     if len(user) > 0:
-        arr = character.find({'owner' : ctx.author.id})
-        embed = discord.Embed(title=f"Inventario de {ctx.author.name}")
-        for character in arr:
-            embed.add_field(name=character['series'],value=f"{character['name']} {character['surname']}")
+        arr = character.find({'owner' : str(ctx.author.id)})
+        embed = discord.Embed(title=f"Inventario de {ctx.author.name}",timestamp=datetime.datetime.utcnow())
+        for chara in arr:
+            print(chara)
+            embed.add_field(name=chara['series'],value=f"{chara['name']} {chara['surname']} 100% " ,inline=True)
         await ctx.send(embed=embed)
     else:
         await ctx.send(f"{ctx.author.mention}, debes registrarte en la base de datos usando kstart")
+@bot.command()
+async def tradeChara(ctx,arg: discord.Member = None):
+    user = users.find_one({"name": ctx.author.name})
+    if len(user) > 0:
+        user1 = users.find_one({"name" : arg.name})
+        if len(user1) > 0:
+            arr = character.find({'owner' : str(ctx.author.id)})
+        embed = discord.Embed(title=f"Que personaje quieres tradear?",timestamp=datetime.datetime.utcnow())
+        for i,chara in enumerate(arr):
+            print(chara)
+            embed.add_field(name=f"{i+1}- {chara['series']}",value=f"{chara['name']} {chara['surname']} 100% " ,inline=True)
+        await ctx.send(embed=embed)
+        def check(m):
+            return int(m.content) >0 & int(m.content) <= len(list(arr)) and m.channel == ctx.message.channel
+        msg = await bot.wait_for("message", check=check)
+        array = list(arr)
+        print(arr[0]['name'])
+
+    else: await ctx.send(f"{ctx.author.mention}, debes registrarte en la base de datos usando kstart")
+
 @bot.command()
 async def help(ctx):
     embed = discord.Embed(title=f'Bienvenido a OTAKULIFE, {ctx.author.name}',
