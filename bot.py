@@ -71,6 +71,9 @@ async def kombat(ctx,arg : str=None):
         else:
                 query = character.aggregate([{ '$sample' : {'size' : 1}}])
                 chara1 = list(query)
+                if (chara1[0]['name'] == "Maxter"):
+                    query = character.aggregate([{ '$sample' : {'size' : 1}}])
+                    chara1 = list(query)
                 var = combat.Combat(chara['name'],chara['atributtes']['attack'],chara['atributtes']['defense'],chara['atributtes']['speed'],chara['picture'],chara1[0]['name'],chara1[0]['atributtes']['attack'],chara1[0]['atributtes']['defense'],chara1[0]['atributtes']['speed'],chara1[0]['picture'])
                 await ctx.send("EMPEZANDO COMBATE")
                 await ctx.send(f"SE ENFRENTAN {chara['name']} {chara['surname']} VS {chara1[0]['name']} {chara1[0]['surname']}")
@@ -236,16 +239,37 @@ async def tradeChara(ctx,arg: discord.Member = None):
         user1 = users.find_one({"name" : arg.name})
         if len(user1) > 0:
             arr = character.find({'owner' : str(ctx.author.id)})
-        embed = discord.Embed(title=f"Que personaje quieres tradear?",timestamp=datetime.datetime.utcnow())
+        embed = discord.Embed(title=f"{ctx.author.name}, Que personaje quieres tradear?",timestamp=datetime.datetime.utcnow())
         for i,chara in enumerate(arr):
             print(chara)
             embed.add_field(name=f"{i+1}- {chara['series']}",value=f"{chara['name']} {chara['surname']} 100% " ,inline=True)
-        await ctx.send(embed=embed)
-        def check(m):
-            return int(m.content) >0 & int(m.content) <= len(list(arr)) and m.channel == ctx.message.channel
-        msg = await bot.wait_for("message", check=check)
-        array = list(arr)
-        print(arr[0]['name'])
+        message = await ctx.send(embed=embed)
+        await message.add_reaction("1️⃣")
+        def check(reaction, user):  # Our check for the reaction
+            return user == ctx.message.author  # We check that only the authors reaction counts
+        reaction = await bot.wait_for("reaction_add", check=check) 
+        await ctx.send("personaje seleccionado")
+        arr = character.find({'owner' : str(arg.id)})
+        embed = discord.Embed(title=f"{arg.name}, Que personaje quieres tradear?",timestamp=datetime.datetime.utcnow())
+        for i,chara in enumerate(arr):
+            print(chara)
+            embed.add_field(name=f"{i+1}- {chara['series']}",value=f"{chara['name']} {chara['surname']} 100% " ,inline=True)
+        message = await ctx.send(embed=embed)
+        await message.add_reaction("1️⃣")
+        def check(reaction, user):  # Our check for the reaction
+            return user == arg  # We check that only the authors reaction counts
+        reaction = await bot.wait_for("reaction_add", check=check) 
+        await ctx.send("personaje seleccionado")
+        await ctx.send(f"{arg.mention} Quieres confirmar?, escriba confirm para hacerlo o no para cancelar")
+        def check1(message): 
+            return message.author == ctx.author  # We check that only the authors reaction counts
+        msg = await bot.wait_for("message",check=check1)
+        if (msg.content == "confirm"):
+            await ctx.send("Trade Confirmado")
+        elif (msg.content == "no"):
+            await ctx.send("Trade Cancelado")
+
+        
 
     else: await ctx.send(f"{ctx.author.mention}, debes registrarte en la base de datos usando kstart")
 
@@ -262,9 +286,21 @@ async def help(ctx):
     embed.add_field(name="gana dinero cada 7 dias", value="kweekly")
     embed.add_field(name="trabaja y gana dinero cada hora", value="kwork")
     embed.add_field(name="visualizar tu avatar", value="kavatar")
+    embed.add_field(name="menu para el sistema de batallas", value="kbattles")
     await ctx.send(embed=embed)
 
-
+@bot.command()
+async def battles(ctx):
+    embed = discord.Embed(title=f'Menu de combate',
+                          description="colecciona y utiliza personajes para ganar recompensas", timestamp=datetime.datetime.utcnow())
+    embed.add_field(
+        name="ver tu lista de personajes", value="kchara")
+    embed.add_field(name="intercambia personajes con otros usuarios", value="ktradeChara @usuario")
+    embed.add_field(name="combate contra un personaje aleatorio y gana recompensas", value="kkombat")
+    embed.add_field(name="busca un personaje por su nombre", value="kfindChara <nombre>")
+    embed.add_field(name="gasta 10000 monedas para reclutar un nuevo personaje", value="kbuy chara")
+    embed.add_field(name="PROXIMAMENTE MAS COMANDOS", value="-")
+    await ctx.send(embed=embed)
 @bot.command()
 async def shop(ctx):
     command = "kbuy"
