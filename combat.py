@@ -3,6 +3,7 @@ import discord
 import progressbar
 from PIL import Image, ImageDraw
 import os
+import bot
 
 
 def playerEmbed(name, player):
@@ -73,6 +74,13 @@ class Combat:
                 await turn.edit(content=f"Turno actual :  {turns}")
                 if self.turn[0].stamina > 0 and self.turn[1].stamina <= 0:
                     embed = discord.Embed(title=f"Ganador {self.turn[0].name}",description=f"STA restante {self.turn[0].stamina}")
+                    randomMoney = random.randint(1,200)
+                    randomExp = random.randint(1,200)
+                    embed.add_field(name="RECOMPENSAS",value=f"Has ganado ´{randomMoney}, tu personaje ha conseguido {randomExp}")
+                    levelUp = bot.updateExp(randomExp,self.turn[0].name)
+                    if levelUp:
+                        await ctx.send("ENHORABUENA TU PERSONAJE HA SUBIDO DE NIVEL, TODAS LAS ESTADISTICAS HAN MEJORADO")
+                    bot.updateMoney(ctx.author.name,randomMoney)
                     embed.set_image(url=self.turn[0].photo)
                     return await ctx.send(embed=embed)
                 if self.turn[1].stamina > 0 and self.turn[0].stamina <= 0:
@@ -96,6 +104,13 @@ class Combat:
                 if self.turn[0].stamina > 0 and self.turn[1].stamina <= 0:
                    embed = discord.Embed(title=f"Ganador {self.turn[0].name}",description=f"STA restante {self.turn[0].stamina}")
                    embed.set_image(url=self.turn[0].photo)
+                   randomMoney = random.randint(1,200)
+                   randomExp = random.randint(1,200)
+                   embed.add_field(name="RECOMPENSAS",value=f"Has ganado ´{randomMoney}, tu personaje ha conseguido {randomExp}")
+                   levelUp = bot.updateExp(randomExp,self.turn[0].name)
+                   if levelUp:
+                        await ctx.send("ENHORABUENA TU PERSONAJE HA SUBIDO DE NIVEL, TODAS LAS ESTADISTICAS HAN MEJORADO")
+                   bot.updateMoney(ctx.author.name,randomMoney)
                    return await ctx.send(embed=embed)
                 if self.turn[1].stamina > 0 and self.turn[0].stamina <= 0:
                     embed = discord.Embed(title=f"Ganador {self.turn[1].name}",description=f"STA restante {self.turn[1].stamina}")

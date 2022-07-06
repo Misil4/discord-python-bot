@@ -1,6 +1,3 @@
-
-from asyncio.windows_events import NULL
-from turtle import title
 import discord
 import os
 from dotenv import load_dotenv
@@ -11,6 +8,7 @@ import combat
 import random
 from PIL import Image, ImageDraw
 import progressbar
+import exp
 
 load_dotenv()
 
@@ -22,6 +20,21 @@ client = MongoClient(os.getenv('MONGO_URI'))
 db = client.Primera
 users = db.usuarios
 character = db.personajes
+
+def updateMoney(author,quantity):
+    users.update_one({"name" : author},{"$inc" : {"money" : +quantity}})
+def updateExp(value, name):
+    character.update_one({"name": name}, {
+                         "$inc": {"exp": +value}})
+
+    chara = character.find_one({"name": name})
+
+    if chara["exp"] >= exp.requiredExp(chara["level"]):
+        character.update_one({"name": name}, {
+                             "$inc": {"level": +1, "atributtes": {"attack": +5, "defense": +5}}})
+        return True
+    else:
+        return False
 
 
 @bot.event
@@ -41,7 +54,7 @@ async def findChara(ctx, *, name):
         name = user['name']
         surname = user['surname']
         embed = discord.Embed(
-            title=f'{name} {surname}',description=user['description'], color=0x00ff00,timestamp=datetime.datetime.utcnow())
+            title=f'{name} {surname}', description=user['description'], color=0x00ff00, timestamp=datetime.datetime.utcnow())
         embed.add_field(name="Genero", value=user['genre'])
         embed.add_field(name="Edad", value=user['age'])
         embed.add_field(name="Series", value=user['series'])
@@ -57,27 +70,34 @@ async def findChara(ctx, *, name):
             embed.set_footer(text="Sin dueño")
         else:
             User = await bot.fetch_user(user['owner'])
-            embed.set_footer(text=f"pertenece a {User.name}",icon_url=User.avatar_url)
+            embed.set_footer(
+                text=f"pertenece a {User.name}", icon_url=User.avatar_url)
         await ctx.send(embed=embed)
 
+
 @bot.command()
-async def kombat(ctx,arg : str=None):
+async def kombat(ctx, arg: str = None):
     if arg:
-        chara = character.find_one({'name':arg})
+        chara = character.find_one({'name': arg})
         if chara is None:
             await ctx.send("No existe un personaje con ese nombre")
         elif chara['owner'] != ctx.author.id:
             await ctx.send("Ese personaje no te pertenece")
         else:
             if chara['owner'] == ctx.author.id:
-                query = character.aggregate([{ '$sample' : {'size' : 1}}])
+                query = character.aggregate([{'$sample': {'size': 1}}])
                 chara1 = list(query)
-                var = combat.Combat(chara['name'],chara['atributtes']['attack'],chara['atributtes']['defense'],chara['atributtes']['speed'],chara['picture'],chara1[0]['name'],chara1[0]['atributtes']['attack'],chara1[0]['atributtes']['defense'],chara1[0]['atributtes']['speed'],chara1[0]['picture'])
+                var = combat.Combat(chara['name'], chara['atributtes']['attack'], chara['atributtes']['defense'], chara['atributtes']['speed'], chara['picture'],
+                                    chara1[0]['name'], chara1[0]['atributtes']['attack'], chara1[0]['atributtes']['defense'], chara1[0]['atributtes']['speed'], chara1[0]['picture'])
                 await ctx.send("EMPEZANDO COMBATE")
                 await ctx.send(f"SE ENFRENTAN {chara['name']} {chara['surname']} VS {chara1[0]['name']} {chara1[0]['surname']}")
                 await var.start_combat(ctx)
-            else : await ctx.send("Ese personaje no te pertenece")
-    else : await ctx.send("No has seleccionado ningun personaje")
+            else:
+                await ctx.send("Ese personaje no te pertenece")
+    else:
+        await ctx.send("No has seleccionado ningun personaje")
+
+
 @bot.command()
 @commands.cooldown(1, 604800, commands.BucketType.user)
 async def weekly(ctx):
@@ -138,16 +158,17 @@ async def buy(ctx, arg: str = None):
             users.update_one({"name": ctx.author.name},
                              {"$inc": {"money": -8000}})
             await ctx.send(f'{role.mention} ,{ctx.author.mention} ha comprado la custom {arg}')
-        elif arg == "chara" & user['money'] >=10000:
+        elif arg == "chara" & user['money'] >= 10000:
             users.update_one({"name": ctx.author.name},
                              {"$inc": {"money": -10000}})
-            query = character.aggregate([{ '$sample' : {'size' : 1}},{ '$match' : { 'owner' : 0 }}])
+            query = character.aggregate(
+                [{'$sample': {'size': 1}}, {'$match': {'owner': 0}}])
             chara = list(query)
             if query is None:
                 await ctx.send("No hay mas personajes disponibles por el momento")
             else:
-                character.update_one({"name" : chara['name']},
-                {'owner' : ctx.author.id})
+                character.update_one({"name": chara['name']},
+                                     {'owner': ctx.author.id})
             await ctx.send(f"Has conseguido a {chara['name']} {chara['surname']}")
         else:
             await ctx.send("ese elemento no existe o no tienes el dinero suficiente")
@@ -219,17 +240,22 @@ async def give(ctx, arg: discord.Member = None, arg1: int = None):
         await ctx.send(f"{ctx.author.mention}, debes definir el usuario al que quieres dar el dinero")
 
     # info commands
+
+
 @bot.command()
 async def inventory(ctx):
     user = users.find_one({"name": ctx.author.name})
     if len(user) > 0:
-        arr = character.find({'owner' : ctx.author.id})
+        arr = character.find({'owner': ctx.author.id})
         embed = discord.Embed(title=f"Inventario de {ctx.author.name}")
         for character in arr:
-            embed.add_field(name=character['series'],value=f"{character['name']} {character['surname']}")
+            embed.add_field(
+                name=character['series'], value=f"{character['name']} {character['surname']}")
         await ctx.send(embed=embed)
     else:
         await ctx.send(f"{ctx.author.mention}, debes registrarte en la base de datos usando kstart")
+
+
 @bot.command()
 async def help(ctx):
     embed = discord.Embed(title=f'Bienvenido a OTAKULIFE, {ctx.author.name}',
@@ -295,9 +321,10 @@ async def remove(ctx, arg: discord.Member = None, arg1: int = None):
     else:
         await ctx.send(f"{ctx.author.mention}, tienes que tagear a un usuario para restar dinero")
 
+
 @bot.command()
 @commands.has_any_role("『🔥』┋MODERADORES")
-async def createChar(ctx, arg : str,arg1 : str,arg2 : str,arg3 : str,arg4 : str,arg5 : str,arg6 : str,arg7 : int,arg8 : int,arg9 : int,arg10 : int):
+async def createChar(ctx, arg: str, arg1: str, arg2: str, arg3: str, arg4: str, arg5: str, arg6: str, arg7: int, arg8: int, arg9: int, arg10: int):
     if arg:
         if arg1:
             if arg2:
@@ -309,8 +336,11 @@ async def createChar(ctx, arg : str,arg1 : str,arg2 : str,arg3 : str,arg4 : str,
                                     if arg8:
                                         if arg9:
                                             if arg10:
-                                                character.insert_one({"name": arg, "surname": arg1, "description": arg2, "age": arg3, "genre": arg4, "series": arg5, "picture": arg6, "atributtes" : {"attack": arg7,"defense" : arg8,"speed" : arg9,"salud" : arg10}})
+                                                character.insert_one({"name": arg, "surname": arg1, "description": arg2, "age": arg3, "genre": arg4, "series": arg5, "picture": arg6, "atributtes": {
+                                                                     "attack": arg7, "defense": arg8, "speed": arg9, "salud": arg10}, "owner": "0", "level": 1, "exp": 0})
                                                 await ctx.send("personaje creado satsfactoriamente")
+
+
 @bot.event
 async def on_command_error(ctx, error):
     if isinstance(error, commands.CommandOnCooldown):
