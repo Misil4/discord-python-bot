@@ -21,20 +21,6 @@ db = client.Primera
 users = db.usuarios
 character = db.personajes
 
-def updateMoney(author,quantity):
-    users.update_one({"name" : author},{"$inc" : {"money" : +quantity}})
-def updateExp(value, name):
-    character.update_one({"name": name}, {
-                         "$inc": {"exp": +value}})
-
-    chara = character.find_one({"name": name})
-
-    if chara["exp"] >= exp.requiredExp(chara["level"]):
-        character.update_one({"name": name}, {
-                             "$inc": {"level": +1, "atributtes": {"attack": +5, "defense": +5}}})
-        return True
-    else:
-        return False
 
 
 @bot.event
@@ -92,7 +78,7 @@ async def kombat(ctx, arg: str = None):
                 var = combat.Combat(chara['name'],chara['atributtes']['attack'],chara['atributtes']['defense'],chara['atributtes']['speed'],chara['picture'],chara1[0]['name'],chara1[0]['atributtes']['attack'],chara1[0]['atributtes']['defense'],chara1[0]['atributtes']['speed'],chara1[0]['picture'])
                 await ctx.send("EMPEZANDO COMBATE")
                 await ctx.send(f"SE ENFRENTAN {chara['name']} {chara['surname']} VS {chara1[0]['name']} {chara1[0]['surname']}")
-                await var.start_combat(ctx)
+                await var.start_combat(ctx,character=character,users=users)
     else : await ctx.send("No has seleccionado ningun personaje")
 @bot.command()
 @commands.cooldown(1, 604800, commands.BucketType.user)
